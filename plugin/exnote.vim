@@ -14,14 +14,23 @@ function! Q(query)
     return '\[' . a:query . '\]'
 endfunction
 
+
+function! MatchLine(line, query)
+    " * [xx,xx]にマッチさせる
+    let s:tag_space = matchstr(a:line, '\* \[.*\]', 0)
+    " [or, query ]or,にマッチさせる
+    let s:query = '[\[\,]'. a:query . '[\]\,]'
+    let s:matched_str = matchstr(s:tag_space, s:query)
+    let s:is_matched = ( s:matched_str != '' )
+    return s:is_matched
+endfunction
+
 " query 検索するタグ文字列
 function! Exnote(query)
     " 開いているファイルの行数を調べる
     let line_count = line("$")
     " 全行をリストに入れる
     let s:lines = getline(1,line_count)
-    
-    let s:query = Q(a:query)
     
     " マッチした行を入れるためのリスト
     let s:list = []
@@ -31,7 +40,7 @@ function! Exnote(query)
     for s:line in s:lines
     
         " 行がマッチしたか
-        let s:is_matched = ( matchstr(s:line, s:query) != '' )
+        let s:is_matched = MatchLine(s:line, a:query)
 
         " マッチしてたらフラグを上げる
         if s:is_matched
