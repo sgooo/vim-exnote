@@ -64,6 +64,8 @@ function! Exnote(query)
     call setline(".", s:list)
 endfunction
 
+command! -nargs=1 Exnote call Exnote(<args>)
+
 let &cpo = s:save_cpo
 unlet s:save_cpo
 
