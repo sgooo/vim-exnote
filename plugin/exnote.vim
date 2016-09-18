@@ -10,10 +10,34 @@ set cpo&vim
 
 " vim script
 
-function! Q(query)
-    return '\[' . a:query . '\]'
+let s:Exnote = {}
+let s:Exnote.is_exnote_tag_list_open = 0
+let s:Exnote.tag_list_buffer_name = -1
+
+function! s:Exnote.closeTagList()
+    if s:Exnote.tag_list_buffer_name >= 0
+        let s:tag_list_win_name = bufwinnr(s:Exnote.tag_list_buffer_name)
+        exec(s:tag_list_win_name.' wincmd w')
+        close
+    endif
 endfunction
 
+function! s:Exnote.openTagList()
+    vnew
+    vertical resize 30
+    let s:Exnote.tag_list_buffer_name = bufnr("")
+endfunction
+
+function! s:Exnote.toggleTagList()
+    " すでに開いているとき
+    if s:Exnote.is_exnote_tag_list_open == 1
+        call s:Exnote.closeTagList()
+        let s:Exnote.is_exnote_tag_list_open = 0
+        return
+    endif
+    call s:Exnote.openTagList()
+    let s:Exnote.is_exnote_tag_list_open = 1
+endfunction
 
 function! MatchLine(line, query)
     " * [xx,xx]にマッチさせる
@@ -26,7 +50,7 @@ function! MatchLine(line, query)
 endfunction
 
 " query 検索するタグ文字列
-function! Exnote(query)
+function! s:Exnote.tagSearch(query)
     " 開いているファイルの行数を調べる
     let line_count = line("$")
     " 全行をリストに入れる
@@ -64,7 +88,10 @@ function! Exnote(query)
     call setline(".", s:list)
 endfunction
 
-command! -nargs=1 Exnote call Exnote(<args>)
+
+command! -nargs=1 ExnoteTagSearch call s:Exnote.tagSearch(<args>)
+" command! -nargs=0 ExnoteTagList call ExnoteTagList(<args>)
+command! -nargs=0 ExnoteTagList call s:Exnote.toggleTagList(<args>)
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
