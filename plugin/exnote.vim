@@ -15,6 +15,8 @@ let s:Exnote = {}
 let s:Exnote.is_exnote_tag_list_open = 0
 " タグリストを開いているバッファ
 let s:Exnote.tag_list_buffer_name = -1
+" 本文の開いている
+let s:Exnote.body_buffer_name = -1
 
 " タグリストを閉じる
 function! s:Exnote.closeTagList()
@@ -29,10 +31,24 @@ function! s:Exnote.closeTagList()
     endif
 endfunction
 
+function! TagSearch()
+    " 選択した行の文字列を取得
+    let l:selected_line = getline(".")
+    let l:query = split(l:selected_line," ")[0]
+
+    let s:body_win_name = bufwinnr(s:Exnote.body_buffer_name)
+    " ウィンドウ移動
+    exec(s:body_win_name.' wincmd w')
+
+    call s:Exnote.tagSearch(l:query)
+endfunction
+
+
 " タグリストを開く
 function! s:Exnote.openTagList()
     let l:tag_list =  s:Exnote.createTagList()
-    echo l:tag_list
+    " 本文を開いているバッファ番号を保存
+    let s:Exnote.body_buffer_name = bufnr("")
     vnew
     vertical resize 30
 
@@ -43,6 +59,9 @@ function! s:Exnote.openTagList()
     endfor
     " タグリストを開いたバッファ番号を保存
     let s:Exnote.tag_list_buffer_name = bufnr("")
+    " nnoremap <silent> <buffer> <cr> :call s:Exnote.tagSearch(g:global_query) <cr>
+    nnoremap <silent> <buffer> <cr> :call TagSearch() <cr>
+
 endfunction
 
 " タグリスト開閉のトグル
@@ -78,7 +97,6 @@ function! s:GetTagsInStr(line)
     let l:frame = matchstr(l:tag_space, '\[.*\]', 0)
     " xx,xxにマッチさせる
     let l:tags_str = strpart(l:frame,1,strlen(l:frame)-2)
-    " echom "matche_str".l:tags_str
     " リストに入れる
     let l:tags = split(l:tags_str,",")
 
