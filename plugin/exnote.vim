@@ -121,16 +121,22 @@ function! s:Exnote.createTagList()
     for l:line in l:lines
         " 一行でマッチしたタグ
         let l:tags_in_line = s:Exnote.getTagsInStr(l:line)
+        " 一行中のタグを全部ループで回す
         for searched_tag in l:tags_in_line
             let l:is_saved = 0
+            " 保存しているタグを全部ループで回す
             for saved_tag in l:saved_tag_list
+                " マッチしたら
                 if saved_tag[0] == searched_tag
+                    " すでに保存されている
                     let l:is_saved = 1
+                    " 保存しているタグ数を１追加
+                    let saved_tag[1] += 1
                 endif
             endfor
-            if l:is_saved
-                let saved_tag[1] = saved_tag[1] + 1
-            else
+            " 保存されていなければ
+            if !l:is_saved
+                " 保存するタグリストにタグを追加
                 call add(l:saved_tag_list, [searched_tag, 1])
             endif
         endfor
