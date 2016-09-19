@@ -81,18 +81,19 @@ function! s:Exnote.toggleTagList()
 endfunction
 
 function! s:CheckMatchLine(line, query)
-    " * [xx,xx]にマッチさせる
-    let s:tag_space = matchstr(a:line, '\* \[.*\]', 0)
-    " [or, query ]or,にマッチさせる
-    let s:query = '[\[\,]'. a:query . '[\]\,]'
-    let s:matched_str = matchstr(s:tag_space, s:query)
-    let s:is_matched = ( s:matched_str != '' )
-    return s:is_matched
+    let l:is_matched = 0
+    let l:tags = s:Exnote.getTagsInStr(a:line)
+    for tag in l:tags
+        if tag == a:query
+            let l:is_matched = 1
+        endif
+    endfor
+    return l:is_matched
 endfunction
 
-function! s:GetTagsInStr(line)
+function! s:Exnote.getTagsInStr(line)
     " * [xx,xx]にマッチさせる
-    let l:tag_space = matchstr(a:line, '\* \[.*\]', 0)
+    let l:tag_space = matchstr(a:line, '\* \[[^\]]*\]', 0)
     " [xx,xx]にマッチさせる
     let l:frame = matchstr(l:tag_space, '\[.*\]', 0)
     " xx,xxにマッチさせる
@@ -119,17 +120,23 @@ function! s:Exnote.createTagList()
     " 全行を調べる
     for l:line in l:lines
         " 一行でマッチしたタグ
-        let l:tags_in_line = s:GetTagsInStr(l:line)
+        let l:tags_in_line = s:Exnote.getTagsInStr(l:line)
+        " 一行中のタグを全部ループで回す
         for searched_tag in l:tags_in_line
             let l:is_saved = 0
+            " 保存しているタグを全部ループで回す
             for saved_tag in l:saved_tag_list
+                " マッチしたら
                 if saved_tag[0] == searched_tag
+                    " すでに保存されている
                     let l:is_saved = 1
+                    " 保存しているタグ数を１追加
+                    let saved_tag[1] += 1
                 endif
             endfor
-            if l:is_saved
-                let saved_tag[1] = saved_tag[1] + 1
-            else
+            " 保存されていなければ
+            if !l:is_saved
+                " 保存するタグリストにタグを追加
                 call add(l:saved_tag_list, [searched_tag, 1])
             endif
         endfor
