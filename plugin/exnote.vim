@@ -52,7 +52,8 @@ function! s:Exnote.openTagList()
     vnew
     vertical resize 30
 
-    let l:tag_list_count = 0
+    " １行目から追加する
+    let l:tag_list_count = 1
     for tag in l:tag_list
         call setline(l:tag_list_count, tag[0]." (".tag[1].")")
         let l:tag_list_count += 1
