@@ -35,7 +35,7 @@ function! TagSearch()
     " 選択した行の文字列を取得
     let l:selected_line = getline(".")
     let l:query = split(l:selected_line," ")[0]
-
+    let l:query = split(l:selected_line," ")[0]
     let s:body_win_name = bufwinnr(s:Exnote.body_buffer_name)
     " ウィンドウ移動
     exec(s:body_win_name.' wincmd w')
