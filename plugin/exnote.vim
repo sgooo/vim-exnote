@@ -35,10 +35,12 @@ function! s:Exnote()
         " マスター文書クラスのリストを全部舐めて、バッファ番号が一致するか調べる
         " 現在のバッファ番号を取得する
         let l:current_buffer = bufnr("")
+
         let l:is_exnote_session_managed = 0
         let l:exnote_session = {}
+        " ここを、ここにロジックを書くのではなく、exnoteSessionに自分の管理しているバッファか調べさせる
         for exnote_session in self.exnote_sessions
-            if l:current_buffer == exnote_session.getBuffer()
+            if exnote_session.isManaging(l:current_buffer)
                 let l:is_exnote_session_managed = 1
                 let l:exnote_session = exnote_session
             endif
@@ -46,7 +48,6 @@ function! s:Exnote()
         " まだ管理してなかったら管理対象に追加する
         if l:is_exnote_session_managed == 0
             let l:exnote_session = s:ExnoteSession()
-            call l:exnote_session.setBuffer(l:current_buffer)
             call add(self.exnote_sessions,l:exnote_session)
         endif
 
@@ -66,6 +67,21 @@ endfunction
 function! s:MasterDocument()
     let self = {}
 
+    let self.buffer_name = -1
+
+    function! self.MasterDocument()
+        " 生成されるときは常に管理対象のバッファで
+        let self.buffer_name = bufnr("")
+    endfunction
+
+    function! self.isManaging(buffer_name)
+        if self.buffer_name == a:buffer_name
+            return 1
+        endif
+        return 0
+    endfunction
+
+    call self.MasterDocument()
     return self
 endfunction
 
@@ -113,12 +129,18 @@ function! s:TagList()
         let self.callbackobj = a:instance
     endfunction
 
+    function! self.isManaging(buffer_name)
+        if self.tag_list_buffer_name == a:buffer_name
+            return 1
+        endif
+        return 0
+    endfunction
+
     return self
 endfunction
 
 function! s:ExnoteSession()
     let self = {}
-    let self.buffer_name = -1
     " タグリストを開いているかフラグ
     let self.is_exnote_tag_list_open = 0
         let self.master_document = {}
@@ -136,12 +158,13 @@ function! s:ExnoteSession()
         call self.TagSearchExt()
     endfunction
 
-    function! self.setBuffer(buffer_name)
-        let self.buffer_name = a:buffer_name
-    endfunction
-
-    function! self.getBuffer()
-        return self.buffer_name
+    " 自分の管理しているバッファか
+    " 基本的にmaster_documentかtaglistか
+    function! self.isManaging(buffer_name)
+        if self.tag_list.isManaging(a:buffer_name) || self.master_document.isManaging(a:buffer_name)
+            return 1
+        endif
+        return 0
     endfunction
 
     function! self.toggleTagList()
