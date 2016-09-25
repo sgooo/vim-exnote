@@ -36,12 +36,20 @@ function! g:TagList()
 
         " ここはsessionがコールバックを受けるような作りにしたい
         " call g:ExnoteEventManager.setEvent(self.TagSearchExt,self)
-        call g:ExnoteEventManager.setEvent(self.callbackfunc,self.callbackobj)
+        call g:ExnoteEventManager.setEvent(self.onEnter,self)
     endfunction
 
-    function! self.addSelectTagEvent(func,instance)
-        let self.callbackfunc = a:func
+    function! self.onEnter()
+        " 選択した行の文字列を取得
+        let l:selected_line = getline(".")
+        let l:query = split(l:selected_line," ")[0]
+
+        call self.callbackobj.func(l:query)
+    endfunction
+
+    function! self.addSelectTagEventListener(func,instance)
         let self.callbackobj = a:instance
+        let self.callbackobj.func = a:func
     endfunction
 
     function! self.isManaging(buffer_name)

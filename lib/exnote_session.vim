@@ -4,19 +4,19 @@ function! g:ExnoteSession()
     let self = {}
     " タグリストを開いているかフラグ
     let self.is_exnote_tag_list_open = 0
-        let self.master_document = {}
+    let self.master_document = {}
     let self.tag_list = {}
 
     function! self.ExnoteSession()
         echom "exnotesession construct"
         let self.master_document = g:MasterDocument()
         let self.tag_list = g:TagList()
-        call self.tag_list.addSelectTagEvent(self.callbacktest,self)
+        call self.tag_list.addSelectTagEventListener(self.selectTag,self)
     endfunction
 
-    function! self.callbacktest()
+    function! self.selectTag(selected_tag)
         echom "コールバック"
-        call self.TagSearchExt()
+        call self.TagSearchExt(a:selected_tag)
     endfunction
 
     " 自分の管理しているバッファか
@@ -58,12 +58,9 @@ function! g:ExnoteSession()
     endfunction
 
     
-    function! self.TagSearchExt()
+    function! self.TagSearchExt(query)
         echom "TagSearchExt"
-        " 選択した行の文字列を取得
-        let l:selected_line = getline(".")
-        let l:query = split(l:selected_line," ")[0]
-        let l:query = split(l:selected_line," ")[0]
+        let l:query = a:query
         let s:body_win_name = bufwinnr(self.body_buffer_name)
         " ウィンドウ移動
         exec(s:body_win_name.' wincmd w')

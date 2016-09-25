@@ -27,8 +27,6 @@ endfunction
 
 function! s:Exnote()
     let self = {}
-        " 本文の開いている
-    let self.body_buffer_name = -1
     let self.name = "exnote"
     let self.exnote_sessions = []
     
