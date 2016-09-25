@@ -15,8 +15,7 @@ function! g:ExnoteSession()
     endfunction
 
     function! self.selectTag(selected_tag)
-        echom "コールバック"
-        call self.TagSearchExt(a:selected_tag)
+        call self.tagSearch(a:selected_tag)
     endfunction
 
     " 自分の管理しているバッファか
@@ -55,17 +54,6 @@ function! g:ExnoteSession()
         
         let self.body_buffer_name = bufnr("")
         call self.tag_list.open(l:tags)
-    endfunction
-
-    
-    function! self.TagSearchExt(query)
-        echom "TagSearchExt"
-        let l:query = a:query
-        let s:body_win_name = bufwinnr(self.body_buffer_name)
-        " ウィンドウ移動
-        exec(s:body_win_name.' wincmd w')
-    
-        call self.master_document.tagSearch(l:query)
     endfunction
 
     function! self.tagSearch(query)

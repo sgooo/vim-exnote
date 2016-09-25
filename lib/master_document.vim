@@ -16,6 +16,12 @@ function! g:MasterDocument()
         return 0
     endfunction
 
+    function! self.moveOwnPosition()
+        let s:body_win_name = bufwinnr(self.buffer_name)
+        " ウィンドウ移動
+        exec(s:body_win_name.' wincmd w')
+    endfunction
+
     function! self.getTagsInDocument()
         let l:saved_tag_list = []
         let l:lines = self.allLineInDocument()
@@ -69,6 +75,7 @@ function! g:MasterDocument()
 
     " query 検索するタグ文字列
     function! self.tagSearch(query)
+        call self.moveOwnPosition()
         
         let l:lines = self.allLineInDocument()
         
