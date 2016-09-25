@@ -23,16 +23,61 @@ endfunction
 
 function! s:Exnote()
     let self = {}
-    " タグリストを開いているかフラグ
-    let self.is_exnote_tag_list_open = 0
-    " タグリストを開いているバッファ
-    let self.tag_list_buffer_name = -1
-    " 本文の開いている
+        " 本文の開いている
     let self.body_buffer_name = -1
     let self.name = "exnote"
+    let self.exnote_sessions = []
+    
+    
+    " タグリスト開閉のトグル
+    function! self.toggleTagList()
+        " ここで開いたバッファがマスター文書クラスで管理しているか調べる
+        " マスター文書クラスのリストを全部舐めて、バッファ番号が一致するか調べる
+        " 現在のバッファ番号を取得する
+        let l:current_buffer = bufnr("")
+        let l:is_exnote_session_managed = 0
+        let l:exnote_session = {}
+        for exnote_session in self.exnote_sessions
+            if l:current_buffer == exnote_session.getBuffer()
+                let l:is_exnote_session_managed = 1
+                let l:exnote_session = exnote_session
+            endif
+        endfor
+        " まだ管理してなかったら管理対象に追加する
+        if l:is_exnote_session_managed == 0
+            let l:exnote_session = s:ExnoteSession()
+            call l:exnote_session.setBuffer(l:current_buffer)
+            call add(self.exnote_sessions,l:exnote_session)
+        endif
 
-    " タグリストを閉じる
-    function! self.closeTagList()
+        " この時点でExnoteを呼び出した文書を管理しているexnote_sessionインスタンスが存在する
+        
+        " exnote_sessionにタグリストをトグルさせる
+        call l:exnote_session.toggleTagList()
+
+    endfunction
+
+
+
+
+    return self
+endfunction
+
+function! s:MasterDocument()
+    let self = {}
+
+    return self
+endfunction
+
+function! s:TagList()
+    let self = {}
+    " タグリストを開いているバッファ
+    let self.tag_list_buffer_name = -1
+    let self.callbackfunc = {}
+    let self.callbackobj = {}
+
+    " 自分の管理しているバッファまで移動して、自分で閉じる
+    function! self.close()
         if self.tag_list_buffer_name >= 0
             " タグリストが開いているバッファのウィンドウ番号
             let s:tag_list_win_name = bufwinnr(self.tag_list_buffer_name)
@@ -44,13 +89,8 @@ function! s:Exnote()
         endif
     endfunction
 
-    " タグリストを開く
-    function! self.openTagList()
-        echom "openTagList"
-        let l:tag_list =  self.createTagList()
-        " 本文を開いているバッファ番号を保存
-        
-        let self.body_buffer_name = bufnr("")
+    function! self.open(tag_list)
+        let l:tag_list = a:tag_list
         vnew
         vertical resize 30
     
@@ -63,12 +103,47 @@ function! s:Exnote()
         " タグリストを開いたバッファ番号を保存
         let self.tag_list_buffer_name = bufnr("")
 
-        call g:ExnoteEventManager.setEvent(self.TagSearchExt,self)
-    
+        " ここはsessionがコールバックを受けるような作りにしたい
+        " call g:ExnoteEventManager.setEvent(self.TagSearchExt,self)
+        call g:ExnoteEventManager.setEvent(self.callbackfunc,self.callbackobj)
     endfunction
 
-    
-    " タグリスト開閉のトグル
+    function! self.addSelectTagEvent(func,instance)
+        let self.callbackfunc = a:func
+        let self.callbackobj = a:instance
+    endfunction
+
+    return self
+endfunction
+
+function! s:ExnoteSession()
+    let self = {}
+    let self.buffer_name = -1
+    " タグリストを開いているかフラグ
+    let self.is_exnote_tag_list_open = 0
+        let self.master_document = {}
+    let self.tag_list = {}
+
+    function! self.ExnoteSession()
+        echom "exnotesession construct"
+        let self.master_document = s:MasterDocument()
+        let self.tag_list = s:TagList()
+        call self.tag_list.addSelectTagEvent(self.callbacktest,self)
+    endfunction
+
+    function! self.callbacktest()
+        echom "コールバック"
+        call self.TagSearchExt()
+    endfunction
+
+    function! self.setBuffer(buffer_name)
+        let self.buffer_name = a:buffer_name
+    endfunction
+
+    function! self.getBuffer()
+        return self.buffer_name
+    endfunction
+
     function! self.toggleTagList()
         " すでに開いているとき
         if self.is_exnote_tag_list_open == 1
@@ -84,26 +159,18 @@ function! s:Exnote()
         let self.is_exnote_tag_list_open = 1
     endfunction
 
-
-    function! self.getTagsInStr(line)
-        " * [xx,xx]にマッチさせる
-        let l:tag_space = matchstr(a:line, '\* \[[^\]]*\]', 0)
-        " [xx,xx]にマッチさせる
-        let l:frame = matchstr(l:tag_space, '\[.*\]', 0)
-        " xx,xxにマッチさせる
-        let l:tags_str = strpart(l:frame,1,strlen(l:frame)-2)
-        " リストに入れる
-        let l:tags = split(l:tags_str,",")
-    
-        return l:tags
+    " タグリストを閉じる
+    function! self.closeTagList()
+        call self.tag_list.close()
     endfunction
 
-    function! self.allLineInDocument()
-        " 開いているファイルの行数を調べる
-        let l:line_count = line("$")
-        " 全行をリストに入れる
-        let l:lines = getline(1,l:line_count)
-        return l:lines
+    " タグリストを開く
+    function! self.openTagList()
+        let l:tag_list =  self.createTagList()
+        " 本文を開いているバッファ番号を保存
+        
+        let self.body_buffer_name = bufnr("")
+        call self.tag_list.open(l:tag_list)
     endfunction
 
     function! self.createTagList()
@@ -134,6 +201,27 @@ function! s:Exnote()
             endfor
         endfor
         return l:saved_tag_list
+    endfunction
+
+    function! self.allLineInDocument()
+        " 開いているファイルの行数を調べる
+        let l:line_count = line("$")
+        " 全行をリストに入れる
+        let l:lines = getline(1,l:line_count)
+        return l:lines
+    endfunction
+
+    function! self.getTagsInStr(line)
+        " * [xx,xx]にマッチさせる
+        let l:tag_space = matchstr(a:line, '\* \[[^\]]*\]', 0)
+        " [xx,xx]にマッチさせる
+        let l:frame = matchstr(l:tag_space, '\[.*\]', 0)
+        " xx,xxにマッチさせる
+        let l:tags_str = strpart(l:frame,1,strlen(l:frame)-2)
+        " リストに入れる
+        let l:tags = split(l:tags_str,",")
+    
+        return l:tags
     endfunction
 
     " query 検索するタグ文字列
@@ -173,7 +261,6 @@ function! s:Exnote()
         call setline(".", l:list)
     endfunction
 
-
     function! self.TagSearchExt()
         echom "TagSearchExt"
         " 選択した行の文字列を取得
@@ -199,17 +286,7 @@ function! s:Exnote()
         return l:is_matched
     endfunction
 
-    return self
-endfunction
-
-function! s:WindowManager()
-    let self = {}
-    function! self.close()
-    endfunction
-    
-    function! self.open()
-    endfunction
-
+    call self.ExnoteSession()
     return self
 endfunction
 
