@@ -6,10 +6,12 @@ function! g:TagList()
     let self.tag_list_buffer_name = -1
     let self.callbackfunc = {}
     let self.callbackobj = {}
+    let self.is_open = 0
 
     " 自分の管理しているバッファまで移動して、自分で閉じる
     function! self.close()
         if self.tag_list_buffer_name >= 0
+            call g:ExnoteEventManager.unbind(self.onEnter,self)
             " タグリストが開いているバッファのウィンドウ番号
             let s:tag_list_win_name = bufwinnr(self.tag_list_buffer_name)
             " ウィンドウ移動
@@ -17,6 +19,7 @@ function! g:TagList()
             " 閉じる
             " close
             q!
+            let self.is_open = 0
         endif
     endfunction
 
@@ -33,10 +36,15 @@ function! g:TagList()
         endfor
         " タグリストを開いたバッファ番号を保存
         let self.tag_list_buffer_name = bufnr("")
+        echom "open:taglist_buffer_name is " . self.tag_list_buffer_name
 
-        " ここはsessionがコールバックを受けるような作りにしたい
-        " call g:ExnoteEventManager.setEvent(self.TagSearchExt,self)
-        call g:ExnoteEventManager.setEvent(self.onEnter,self)
+        let self.is_open = 1
+        call g:ExnoteEventManager.bind(self.onEnter,self)
+    endfunction
+
+    function! self.isOpen()
+        echom "taglistisopen " . self.is_open
+        return self.is_open
     endfunction
 
     function! self.onEnter()

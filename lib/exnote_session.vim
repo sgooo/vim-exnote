@@ -1,20 +1,21 @@
 
 
-function! g:ExnoteSession()
+function! g:ExnoteSession(id)
     let self = {}
-    " タグリストを開いているかフラグ
-    let self.is_exnote_tag_list_open = 0
     let self.master_document = {}
     let self.tag_list = {}
+    let self.id = -1
 
-    function! self.ExnoteSession()
+    function! self.ExnoteSession(id)
         echom "exnotesession construct"
         let self.master_document = g:MasterDocument()
         let self.tag_list = g:TagList()
+        let self.id = a:id
         call self.tag_list.addSelectTagEventListener(self.selectTag,self)
     endfunction
 
     function! self.selectTag(selected_tag)
+        echom "selectTag and my id is " . self.id
         call self.tagSearch(a:selected_tag)
     endfunction
 
@@ -29,17 +30,13 @@ function! g:ExnoteSession()
 
     function! self.toggleTagList()
         " すでに開いているとき
-        if self.is_exnote_tag_list_open == 1
+        if self.tag_list.isOpen() == 1
             " タグリストを閉じる
             call self.closeTagList()
-            " タグリストを開いているフラグを落とす
-            let self.is_exnote_tag_list_open = 0
             return
         endif
         " タグリストを開く
         call self.openTagList()
-        " タグリストを開いているフラグを立てる
-        let self.is_exnote_tag_list_open = 1
     endfunction
 
     " タグリストを閉じる
@@ -57,6 +54,6 @@ function! g:ExnoteSession()
         call self.master_document.tagSearch(a:query)
     endfunction
     
-    call self.ExnoteSession()
+    call self.ExnoteSession(a:id)
     return self
 endfunction

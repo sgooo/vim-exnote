@@ -15,13 +15,38 @@ runtime lib/master_document.vim
 runtime lib/exnote_session.vim
 
 let g:ExnoteEventManager = {}
-function! g:ExnoteEventManager.setEvent(func,object)
-    let g:ExnoteEventManager.object = a:object
-    let g:ExnoteEventManager.object.func = a:func
+let g:ExnoteEventManager.listener_list = []
+
+function! g:ExnoteEventManager.unbind(func,object)
+    let l:current_buffer = bufnr("")
+    let l:tmp_list = []
+    for l:listener in g:ExnoteEventManager.listener_list
+        if l:listener.buffer_name == l:current_buffer
+            echom "unbind buffer: " . l:listener.buffer_name
+        else
+            call add(l:tmp_list,l:listener)
+        endif
+    endfor
+    let g:ExnoteEventManager.listener_list = l:tmp_list
+endfunction
+function! g:ExnoteEventManager.bind(func,object)
+    let l:current_buffer = bufnr("")
+    let l:listener = {}
+    let l:listener.object = a:object
+    let l:listener.object.func = a:func
+    let l:listener.buffer_name = l:current_buffer
+    call add(g:ExnoteEventManager.listener_list, l:listener)
     nnoremap <silent> <buffer> <cr> :call g:ExnoteEventManager.gofunc()  <cr>
 endfunction
 function! g:ExnoteEventManager.gofunc()
-    call g:ExnoteEventManager.object.func()
+    let l:current_buffer = bufnr("")
+    echom "gofunc bufffer: " . l:current_buffer
+    for l:listener in g:ExnoteEventManager.listener_list
+        if l:listener.buffer_name == l:current_buffer
+            echom "matched buffer: " . l:listener.buffer_name
+            call l:listener.object.func()
+        endif
+    endfor
 endfunction
 
 
@@ -35,6 +60,7 @@ function! s:Exnote()
         " マスター文書クラスのリストを全部舐めて、バッファ番号が一致するか調べる
         " 現在のバッファ番号を取得する
         let l:current_buffer = bufnr("")
+        echom "searchbuffer " . l:current_buffer
 
         let l:is_exnote_session_managed = 0
         let l:exnote_session = {}
@@ -47,7 +73,7 @@ function! s:Exnote()
         endfor
         " まだ管理してなかったら管理対象に追加する
         if l:is_exnote_session_managed == 0
-            let l:exnote_session = g:ExnoteSession()
+            let l:exnote_session = g:ExnoteSession(len(self.exnote_sessions))
             call add(self.exnote_sessions,l:exnote_session)
         endif
 
