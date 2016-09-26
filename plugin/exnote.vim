@@ -96,10 +96,36 @@ function! s:Exnote()
         call l:exnote_session.tagSearch(a:query)
     endfunction
 
+    function! self.deleteBuffer()
+        let l:current_buffer = self.focus_buffer
+        let l:is_exnote_session_managed = 0
+        let l:exnote_session = {}
+
+        let l:tmp_list = []
+        " echom "session size: " . len(self.exnote_sessions)
+        " echom "curent_buffer: " . l:current_buffer
+        for exnote_session in self.exnote_sessions
+            if exnote_session.isManagingMaster(l:current_buffer) == 1
+                " echom "管理してる" .  exnote_session.id . "が閉じられた"
+            else
+                call add(l:tmp_list,exnote_session)
+            endif
+        endfor
+        let self.exnote_sessions = l:tmp_list
+    endfunction
+
+    function! self.enterBuffer()
+        let self.focus_buffer = bufnr("")
+    endfunction
+
+
     return self
 endfunction
 
 let s:exnote = s:Exnote()
+
+autocmd BufDelete * call s:exnote.deleteBuffer()
+autocmd BufEnter * call s:exnote.enterBuffer()
 
 command! -nargs=1 ExnoteTagSearch call s:exnote.tagSearch(<args>)
 command! -nargs=0 ExnoteTagList call s:exnote.toggleTagList(<args>)

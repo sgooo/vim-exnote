@@ -26,6 +26,13 @@ function! g:ExnoteSession(id)
         return 0
     endfunction
 
+    function! self.isManagingMaster(buffer_name)
+        if self.master_document.isManaging(a:buffer_name) == 1
+            return 1
+        endif
+        return 0
+    endfunction
+
     function! self.toggleTagList()
         " すでに開いているとき
         if self.tag_list.isOpen() == 1
@@ -49,7 +56,10 @@ function! g:ExnoteSession(id)
     endfunction
 
     function! self.tagSearch(query)
-        call self.master_document.tagSearch(a:query)
+        let l:tags = self.master_document.tagSearch(a:query)
+        " 新しいタブを開いて、マッチした文字を挿入する
+        tabnew
+        call setline(".", l:tags)
     endfunction
     
     call self.ExnoteSession(a:id)

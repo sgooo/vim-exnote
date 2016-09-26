@@ -10,6 +10,7 @@ function! g:MasterDocument()
     endfunction
 
     function! self.isManaging(buffer_name)
+        " echom "isManagin mybuffer: " . self.buffer_name . " querybuffer: " . a:buffer_name
         if self.buffer_name == a:buffer_name
             return 1
         endif
@@ -106,9 +107,7 @@ function! g:MasterDocument()
             endif
         endfor
         
-        " 新しいタブを開いて、マッチした文字を挿入する
-        tabnew
-        call setline(".", l:list)
+        return l:list
     endfunction
 
     function! self.CheckMatchLine(line, query)
