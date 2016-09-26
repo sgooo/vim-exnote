@@ -22,28 +22,27 @@ function! g:ExnoteEventManager.unbind(func,object)
     let l:tmp_list = []
     for l:listener in g:ExnoteEventManager.listener_list
         if l:listener.buffer_name == l:current_buffer
-            echom "unbind buffer: " . l:listener.buffer_name
+            " echom "unbind buffer: " . l:listener.buffer_name
         else
             call add(l:tmp_list,l:listener)
         endif
     endfor
     let g:ExnoteEventManager.listener_list = l:tmp_list
 endfunction
-function! g:ExnoteEventManager.bind(func,object)
+function! g:ExnoteEventManager.bind(func,object,id)
     let l:current_buffer = bufnr("")
     let l:listener = {}
     let l:listener.object = a:object
     let l:listener.object.func = a:func
     let l:listener.buffer_name = l:current_buffer
+    let l:listener.id = a:id
     call add(g:ExnoteEventManager.listener_list, l:listener)
     nnoremap <silent> <buffer> <cr> :call g:ExnoteEventManager.gofunc()  <cr>
 endfunction
 function! g:ExnoteEventManager.gofunc()
     let l:current_buffer = bufnr("")
-    echom "gofunc bufffer: " . l:current_buffer
     for l:listener in g:ExnoteEventManager.listener_list
         if l:listener.buffer_name == l:current_buffer
-            echom "matched buffer: " . l:listener.buffer_name
             call l:listener.object.func()
         endif
     endfor
@@ -60,7 +59,6 @@ function! s:Exnote()
         " マスター文書クラスのリストを全部舐めて、バッファ番号が一致するか調べる
         " 現在のバッファ番号を取得する
         let l:current_buffer = bufnr("")
-        echom "searchbuffer " . l:current_buffer
 
         let l:is_exnote_session_managed = 0
         let l:exnote_session = {}
@@ -69,6 +67,8 @@ function! s:Exnote()
             if exnote_session.isManaging(l:current_buffer)
                 let l:is_exnote_session_managed = 1
                 let l:exnote_session = exnote_session
+                " bug-fix
+                break
             endif
         endfor
         " まだ管理してなかったら管理対象に追加する

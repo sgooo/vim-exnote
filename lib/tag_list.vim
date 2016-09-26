@@ -1,12 +1,17 @@
 
 
-function! g:TagList()
+function! g:TagList(id)
     let self = {}
     " タグリストを開いているバッファ
     let self.tag_list_buffer_name = -1
     let self.callbackfunc = {}
     let self.callbackobj = {}
     let self.is_open = 0
+    let self.id = -1
+
+    function! self.TagList(id)
+        let self.id = a:id
+    endfunction
 
     " 自分の管理しているバッファまで移動して、自分で閉じる
     function! self.close()
@@ -36,14 +41,12 @@ function! g:TagList()
         endfor
         " タグリストを開いたバッファ番号を保存
         let self.tag_list_buffer_name = bufnr("")
-        echom "open:taglist_buffer_name is " . self.tag_list_buffer_name
 
         let self.is_open = 1
-        call g:ExnoteEventManager.bind(self.onEnter,self)
+        call g:ExnoteEventManager.bind(self.onEnter,self,self.id)
     endfunction
 
     function! self.isOpen()
-        echom "taglistisopen " . self.is_open
         return self.is_open
     endfunction
 
@@ -67,6 +70,7 @@ function! g:TagList()
         return 0
     endfunction
 
+    call self.TagList(a:id)
     return self
 endfunction
 

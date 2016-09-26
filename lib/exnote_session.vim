@@ -7,15 +7,13 @@ function! g:ExnoteSession(id)
     let self.id = -1
 
     function! self.ExnoteSession(id)
-        echom "exnotesession construct"
         let self.master_document = g:MasterDocument()
-        let self.tag_list = g:TagList()
+        let self.tag_list = g:TagList(a:id)
         let self.id = a:id
         call self.tag_list.addSelectTagEventListener(self.selectTag,self)
     endfunction
 
     function! self.selectTag(selected_tag)
-        echom "selectTag and my id is " . self.id
         call self.tagSearch(a:selected_tag)
     endfunction
 
