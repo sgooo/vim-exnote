@@ -10,181 +10,135 @@ set cpo&vim
 
 " vim script
 
-let s:Exnote = {}
-" タグリストを開いているかフラグ
-let s:Exnote.is_exnote_tag_list_open = 0
-" タグリストを開いているバッファ
-let s:Exnote.tag_list_buffer_name = -1
-" 本文の開いている
-let s:Exnote.body_buffer_name = -1
+runtime lib/tag_list.vim
+runtime lib/master_document.vim
+runtime lib/exnote_session.vim
 
-" タグリストを閉じる
-function! s:Exnote.closeTagList()
-    if s:Exnote.tag_list_buffer_name >= 0
-        " タグリストが開いているバッファのウィンドウ番号
-        let s:tag_list_win_name = bufwinnr(s:Exnote.tag_list_buffer_name)
-        " ウィンドウ移動
-        exec(s:tag_list_win_name.' wincmd w')
-        " 閉じる
-        " close
-        q!
-    endif
-endfunction
+let g:ExnoteEventManager = {}
+let g:ExnoteEventManager.listener_list = []
 
-function! TagSearch()
-    " 選択した行の文字列を取得
-    let l:selected_line = getline(".")
-    let l:query = split(l:selected_line," ")[0]
-    let l:query = split(l:selected_line," ")[0]
-    let s:body_win_name = bufwinnr(s:Exnote.body_buffer_name)
-    " ウィンドウ移動
-    exec(s:body_win_name.' wincmd w')
-
-    call s:Exnote.tagSearch(l:query)
-endfunction
-
-
-" タグリストを開く
-function! s:Exnote.openTagList()
-    let l:tag_list =  s:Exnote.createTagList()
-    " 本文を開いているバッファ番号を保存
-    let s:Exnote.body_buffer_name = bufnr("")
-    vnew
-    vertical resize 30
-
-    " １行目から追加する
-    let l:tag_list_count = 1
-    for tag in l:tag_list
-        call setline(l:tag_list_count, tag[0]." (".tag[1].")")
-        let l:tag_list_count += 1
-    endfor
-    " タグリストを開いたバッファ番号を保存
-    let s:Exnote.tag_list_buffer_name = bufnr("")
-    " nnoremap <silent> <buffer> <cr> :call s:Exnote.tagSearch(g:global_query) <cr>
-    nnoremap <silent> <buffer> <cr> :call TagSearch() <cr>
-
-endfunction
-
-" タグリスト開閉のトグル
-function! s:Exnote.toggleTagList()
-    " すでに開いているとき
-    if s:Exnote.is_exnote_tag_list_open == 1
-        " タグリストを閉じる
-        call s:Exnote.closeTagList()
-        " タグリストを開いているフラグを落とす
-        let s:Exnote.is_exnote_tag_list_open = 0
-        return
-    endif
-    " タグリストを開く
-    call s:Exnote.openTagList()
-    " タグリストを開いているフラグを立てる
-    let s:Exnote.is_exnote_tag_list_open = 1
-endfunction
-
-function! s:CheckMatchLine(line, query)
-    let l:is_matched = 0
-    let l:tags = s:Exnote.getTagsInStr(a:line)
-    for tag in l:tags
-        if tag == a:query
-            let l:is_matched = 1
+function! g:ExnoteEventManager.unbind(func,object)
+    let l:current_buffer = bufnr("")
+    let l:tmp_list = []
+    for l:listener in g:ExnoteEventManager.listener_list
+        if l:listener.buffer_name == l:current_buffer
+            " echom "unbind buffer: " . l:listener.buffer_name
+        else
+            call add(l:tmp_list,l:listener)
         endif
     endfor
-    return l:is_matched
+    let g:ExnoteEventManager.listener_list = l:tmp_list
+endfunction
+function! g:ExnoteEventManager.bind(func,object,id)
+    let l:current_buffer = bufnr("")
+    let l:listener = {}
+    let l:listener.object = a:object
+    let l:listener.object.func = a:func
+    let l:listener.buffer_name = l:current_buffer
+    let l:listener.id = a:id
+    call add(g:ExnoteEventManager.listener_list, l:listener)
+    nnoremap <silent> <buffer> <cr> :call g:ExnoteEventManager.gofunc()  <cr>
+endfunction
+function! g:ExnoteEventManager.gofunc()
+    let l:current_buffer = bufnr("")
+    for l:listener in g:ExnoteEventManager.listener_list
+        if l:listener.buffer_name == l:current_buffer
+            call l:listener.object.func()
+        endif
+    endfor
 endfunction
 
-function! s:Exnote.getTagsInStr(line)
-    " * [xx,xx]にマッチさせる
-    let l:tag_space = matchstr(a:line, '\* \[[^\]]*\]', 0)
-    " [xx,xx]にマッチさせる
-    let l:frame = matchstr(l:tag_space, '\[.*\]', 0)
-    " xx,xxにマッチさせる
-    let l:tags_str = strpart(l:frame,1,strlen(l:frame)-2)
-    " リストに入れる
-    let l:tags = split(l:tags_str,",")
 
-    return l:tags
-endfunction
+function! s:Exnote()
+    let self = {}
+    let self.name = "exnote"
+    let self.exnote_sessions = []
+    
+    function! self.getSession()
+        " ここで開いたバッファがマスター文書クラスで管理しているか調べる
+        " マスター文書クラスのリストを全部舐めて、バッファ番号が一致するか調べる
+        " 現在のバッファ番号を取得する
+        let l:current_buffer = bufnr("")
 
-function! s:Exnote.allLineInDocument()
-    " 開いているファイルの行数を調べる
-    let l:line_count = line("$")
-    " 全行をリストに入れる
-    let l:lines = getline(1,l:line_count)
-    return l:lines
-endfunction
+        let l:is_exnote_session_managed = 0
+        let l:exnote_session = {}
 
-" let s:Exnote.tag_list = []
-
-function! s:Exnote.createTagList()
-    let l:saved_tag_list = []
-    let l:lines = s:Exnote.allLineInDocument()
-    " 全行を調べる
-    for l:line in l:lines
-        " 一行でマッチしたタグ
-        let l:tags_in_line = s:Exnote.getTagsInStr(l:line)
-        " 一行中のタグを全部ループで回す
-        for searched_tag in l:tags_in_line
-            let l:is_saved = 0
-            " 保存しているタグを全部ループで回す
-            for saved_tag in l:saved_tag_list
-                " マッチしたら
-                if saved_tag[0] == searched_tag
-                    " すでに保存されている
-                    let l:is_saved = 1
-                    " 保存しているタグ数を１追加
-                    let saved_tag[1] += 1
-                endif
-            endfor
-            " 保存されていなければ
-            if !l:is_saved
-                " 保存するタグリストにタグを追加
-                call add(l:saved_tag_list, [searched_tag, 1])
+        for exnote_session in self.exnote_sessions
+            if exnote_session.isManaging(l:current_buffer)
+                let l:is_exnote_session_managed = 1
+                let l:exnote_session = exnote_session
+                " bug-fix
+                break
             endif
         endfor
-    endfor
-    return l:saved_tag_list
+        " まだ管理してなかったら管理対象に追加する
+        if l:is_exnote_session_managed == 0
+            let l:exnote_session = g:ExnoteSession(len(self.exnote_sessions))
+            call add(self.exnote_sessions,l:exnote_session)
+        endif
+
+        " この時点でExnoteを呼び出した文書を管理しているexnote_sessionインスタンスが存在する
+        return l:exnote_session
+    endfunction
+    
+    " タグリスト開閉のトグル
+    function! self.toggleTagList()
+        
+        let l:exnote_session = self.getSession()
+        
+        " exnote_sessionにタグリストをトグルさせる
+        call l:exnote_session.toggleTagList()
+
+    endfunction
+
+    function! self.tagSearch(query)
+        let l:exnote_session = self.getSession()
+        call l:exnote_session.tagSearch(a:query)
+    endfunction
+
+    " 管理対象だったバッファが閉じられたら、sessionリストから削除する
+    function! self.deleteBuffer()
+        let l:current_buffer = self.focus_buffer
+        let l:is_exnote_session_managed = 0
+        let l:exnote_session = {}
+
+        let l:tmp_list = []
+        " echom "session size: " . len(self.exnote_sessions)
+        " echom "curent_buffer: " . l:current_buffer
+        for exnote_session in self.exnote_sessions
+            if exnote_session.isManagingMaster(l:current_buffer) == 1
+                " echom "管理してる" .  exnote_session.id . "が閉じられた"
+            else
+                call add(l:tmp_list,exnote_session)
+            endif
+        endfor
+        let self.exnote_sessions = l:tmp_list
+    endfunction
+
+    " バッファが閉じられるタイミングでバッファ番号を取得手段がないので、
+    " バッファに移動した時点でバッファ番号を保存しておく
+    function! self.enterBuffer()
+        let self.focus_buffer = bufnr("")
+    endfunction
+
+
+    return self
 endfunction
 
-" query 検索するタグ文字列
-function! s:Exnote.tagSearch(query)
-    
-    let l:lines = s:Exnote.allLineInDocument()
-    
-    " マッチした行を入れるためのリスト
-    let l:list = []
-    let l:add_flag = 0
+let s:exnote = s:Exnote()
 
-    " 全行を調べる
-    for l:line in l:lines
-    
-        " 行がマッチしたか
-        let l:is_matched = s:CheckMatchLine(l:line, a:query)
+augroup del_buffer
+    autocmd!
+    autocmd BufDelete * call s:exnote.deleteBuffer()
+augroup END
 
-        " マッチしてたらフラグを上げる
-        if l:is_matched
-            let l:add_flag = 1
-        endif
-    
-        " フラグが上がってたら追加
-        " フラグは次に空白列が来るまで上がっている
-        if l:add_flag == 1
-            call add(l:list, l:line)
-        endif
-    
-        " 空白列が来たらフラグをさげる
-        if l:line == ''
-            let l:add_flag = 0
-        endif
-    endfor
-    
-    " 新しいタブを開いて、マッチした文字を挿入する
-    tabnew
-    call setline(".", l:list)
-endfunction
+augroup ent_buffer
+    autocmd!
+    autocmd BufEnter * call s:exnote.enterBuffer()
+augroup END
 
-
-command! -nargs=1 ExnoteTagSearch call s:Exnote.tagSearch(<args>)
-command! -nargs=0 ExnoteTagList call s:Exnote.toggleTagList(<args>)
+command! -nargs=1 ExnoteTagSearch call s:exnote.tagSearch(<args>)
+command! -nargs=0 ExnoteTagList call s:exnote.toggleTagList(<args>)
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
