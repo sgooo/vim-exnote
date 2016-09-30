@@ -96,6 +96,7 @@ function! s:Exnote()
         call l:exnote_session.tagSearch(a:query)
     endfunction
 
+    " 管理対象だったバッファが閉じられたら、sessionリストから削除する
     function! self.deleteBuffer()
         let l:current_buffer = self.focus_buffer
         let l:is_exnote_session_managed = 0
@@ -114,6 +115,8 @@ function! s:Exnote()
         let self.exnote_sessions = l:tmp_list
     endfunction
 
+    " バッファが閉じられるタイミングでバッファ番号を取得手段がないので、
+    " バッファに移動した時点でバッファ番号を保存しておく
     function! self.enterBuffer()
         let self.focus_buffer = bufnr("")
     endfunction
@@ -124,8 +127,15 @@ endfunction
 
 let s:exnote = s:Exnote()
 
-autocmd BufDelete * call s:exnote.deleteBuffer()
-autocmd BufEnter * call s:exnote.enterBuffer()
+augroup del_buffer
+    autocmd!
+    autocmd BufDelete * call s:exnote.deleteBuffer()
+augroup END
+
+augroup ent_buffer
+    autocmd!
+    autocmd BufEnter * call s:exnote.enterBuffer()
+augroup END
 
 command! -nargs=1 ExnoteTagSearch call s:exnote.tagSearch(<args>)
 command! -nargs=0 ExnoteTagList call s:exnote.toggleTagList(<args>)

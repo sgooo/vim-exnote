@@ -16,6 +16,7 @@ function! g:TagList(id)
     " 自分の管理しているバッファまで移動して、自分で閉じる
     function! self.close()
         if self.tag_list_buffer_name >= 0
+            " イベントリッスン登録を解除する
             call g:ExnoteEventManager.unbind(self.onEnter,self)
             " タグリストが開いているバッファのウィンドウ番号
             let s:tag_list_win_name = bufwinnr(self.tag_list_buffer_name)
