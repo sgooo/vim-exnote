@@ -5,6 +5,7 @@ function! g:ExnoteSession(id)
     let self.master_document = {}
     let self.tag_list = {}
     let self.id = -1
+    let self.child_sessions = []
 
     function! self.ExnoteSession(id)
         let self.master_document = g:MasterDocument()
@@ -17,11 +18,30 @@ function! g:ExnoteSession(id)
         call self.tagSearch(a:selected_tag)
     endfunction
 
+    function! self.getSession(buffer_name)
+        if self.tag_list.isManaging(a:buffer_name) || self.master_document.isManaging(a:buffer_name)
+            return self
+        else
+            for child_session in self.child_sessions
+                if child_session.isManaging(a:buffer_name)
+                    return child_session.getSession(a:buffer_name)
+                endif
+            endfor
+        endif
+        return self
+    endfunction
+
     " 自分の管理しているバッファか
     " 基本的にmaster_documentかtaglistか
     function! self.isManaging(buffer_name)
         if self.tag_list.isManaging(a:buffer_name) || self.master_document.isManaging(a:buffer_name)
             return 1
+        else
+            for child_session in self.child_sessions
+                if child_session.isManaging(a:buffer_name)
+                    return 1
+                endif
+            endfor
         endif
         return 0
     endfunction
@@ -103,23 +123,26 @@ function! g:ExnoteSession(id)
         if bufexists(l:file_path) 
             call self.moveToBuffer(a:query)
         else
-            tabnew 
-        endif
+            " チェックの仕組みはこれでいい
+            " TODO:すでにあってかつ同じ検索ならそのタブを開く
+            " すでにファイルがあることと、vim上のバッファで開いていることは別
+            " 両方に対応する必要
+            " 同名のバッファが開いているかも確認
+            if findfile(l:file_path, "./") != ""
+                tabnew 
+                execute "e! "  . l:file_path
+            else
+                let l:tags = self.master_document.tagSearch(a:query)
+                tabnew 
 
-        " チェックの仕組みはこれでいい
-        " TODO:すでにあってかつ同じ検索ならそのタブを開く
-        " すでにファイルがあることと、vim上のバッファで開いていることは別
-        " 両方に対応する必要
-        " 同名のバッファが開いているかも確認
-        if findfile(l:file_path, "./") != ""
-            execute "e! "  . l:file_path
-        else
-            let l:tags = self.master_document.tagSearch(a:query)
-            " 新しいタブを開いて、マッチした文字を挿入する
-            call setline(".", l:tags)
-            execute "saveas!"  . l:file_path
-        endif
+                let l:exnote_session = g:ExnoteSession(-1)
+                call add(self.child_sessions,l:exnote_session)
 
+                " 新しいタブを開いて、マッチした文字を挿入する
+                call setline(".", l:tags)
+                execute "saveas!"  . l:file_path
+            endif
+        endif
         " echom l:command
         " execute l:command
         " redir END
