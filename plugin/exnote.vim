@@ -10,6 +10,8 @@ set cpo&vim
 
 " vim script
 
+" let g:exnote_root_path= expand('%:p:h')
+let g:exnote_root_path= expand('<sfile>:p:h') 
 runtime lib/tag_list.vim
 runtime lib/master_document.vim
 runtime lib/exnote_session.vim

@@ -51,15 +51,50 @@ function! g:ExnoteSession(id)
 
     " タグリストを開く
     function! self.openTagList()
+
+        let l:debug_fromtime = system("date +%s%3N")
+
+
+
         let l:tags =  self.master_document.getTagsInDocument()
         call self.tag_list.open(l:tags)
+
+
+        let l:debug_totime = system("date +%s%3N")
+        let l:debug_str = "exnote_session:oepnTagList " . (l:debug_totime - l:debug_fromtime) . " nanosec"
+        call system("echo " . l:debug_str . " >> ~/debugexnote.log")
+
     endfunction
 
     function! self.tagSearch(query)
         let l:tags = self.master_document.tagSearch(a:query)
         " 新しいタブを開いて、マッチした文字を挿入する
-        tabnew
+        
+        let l:cache_dir = g:exnote_root_path . "/../cache"
+        let l:file_path = l:cache_dir . "/".a:query
+        
+        if bufexists(a:query) 
+        endif
+        
+        tabnew 
         call setline(".", l:tags)
+        
+
+        " チェックの仕組みはこれでいい
+        " TODO:すでにあってかつ同じ検索ならそのタブを開く
+        " すでにファイルがあることと、vim上のバッファで開いていることは別
+        " 両方に対応する必要
+        " 同名のバッファが開いているかも確認
+        if findfile(l:file_path, "./") != ""
+            execute "e! "  . l:file_path
+        else
+            execute "saveas!"  . l:file_path
+        endif
+
+        " echom l:command
+        " execute l:command
+        " redir END
+        " e! "~/ex:".a:query
     endfunction
     
     call self.ExnoteSession(a:id)
