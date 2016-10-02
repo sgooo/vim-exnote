@@ -94,8 +94,7 @@ function! g:ExnoteSession(id)
     endfunction
 
     function! self.tagSearch(query)
-        let l:tags = self.master_document.tagSearch(a:query)
-        " 新しいタブを開いて、マッチした文字を挿入する
+        
         
         let l:cache_dir = g:exnote_root_path . "/../cache"
         let l:file_path = l:cache_dir . "/".a:query
@@ -115,6 +114,8 @@ function! g:ExnoteSession(id)
         if findfile(l:file_path, "./") != ""
             execute "e! "  . l:file_path
         else
+            let l:tags = self.master_document.tagSearch(a:query)
+            " 新しいタブを開いて、マッチした文字を挿入する
             call setline(".", l:tags)
             execute "saveas!"  . l:file_path
         endif
