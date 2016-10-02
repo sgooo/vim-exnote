@@ -66,6 +66,33 @@ function! g:ExnoteSession(id)
 
     endfunction
 
+    function! self.moveToWin(query)
+        let l:bufname = fnamemodify(bufname(""), ':t')   
+        let l:first = bufnr("")
+        let l:target = -1
+        while l:first != l:target
+            wincmd w
+            let l:target = bufnr("")
+            let l:bufname = fnamemodify(bufname(""), ':t')   
+            if l:bufname == a:query
+                return 1
+            endif
+        endwhile
+        return 0
+    endfunction
+
+    function! self.moveToBuffer(query)
+        let l:bufname = fnamemodify(bufname(""), ':t')   
+        while a:query != l:bufname
+            tabn
+            let l:flg = self.moveToWin(a:query)
+            if l:flg
+                break
+            endif
+            let l:bufname = fnamemodify(bufname(""), ':t')   
+        endwhile
+    endfunction
+
     function! self.tagSearch(query)
         let l:tags = self.master_document.tagSearch(a:query)
         " 新しいタブを開いて、マッチした文字を挿入する
@@ -73,12 +100,12 @@ function! g:ExnoteSession(id)
         let l:cache_dir = g:exnote_root_path . "/../cache"
         let l:file_path = l:cache_dir . "/".a:query
         
-        if bufexists(a:query) 
+        " TODO:コード改善
+        if bufexists(l:file_path) 
+            call self.moveToBuffer(a:query)
+        else
+            tabnew 
         endif
-        
-        tabnew 
-        call setline(".", l:tags)
-        
 
         " チェックの仕組みはこれでいい
         " TODO:すでにあってかつ同じ検索ならそのタブを開く
@@ -88,6 +115,7 @@ function! g:ExnoteSession(id)
         if findfile(l:file_path, "./") != ""
             execute "e! "  . l:file_path
         else
+            call setline(".", l:tags)
             execute "saveas!"  . l:file_path
         endif
 

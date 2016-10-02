@@ -142,6 +142,52 @@ augroup END
 command! -nargs=1 ExnoteTagSearch call s:exnote.tagSearch(<args>)
 command! -nargs=0 ExnoteTagList call s:exnote.toggleTagList(<args>)
 
+" http://d.hatena.ne.jp/yk5656/20131215/1387098750
+function! s:BufInfo()
+  echo "\n----- バッファに関する情報 -----"
+  echo "bufnr('%')=" . bufnr('%') . "	// 現在のバッファ番号"
+  echo "bufnr('$')=" . bufnr('$') . "	// 最後のバッファ番号"
+  echo "bufnr('#')=" . bufnr('#') . "	// 直前のバッファ番号？（仕様がよくわからない）"
+  for i in range(1, bufnr('$'))
+    echo  "bufexists(" . i . ")=".bufexists(i)
+    echon " buflisted(" . i . ")=".buflisted(i)
+    echon " bufloaded(" . i . ")=".bufloaded(i)
+    echon " bufname(" . i . ")=".bufname(i)
+  endfor
+  echo "// bufexists(n)=バッファnが存在するか"
+  echo "// buflisted(n)=バッファnがリストにあるか"
+  echo "// bufloaded(n)=バッファnがロード済みか"
+  echo "// bufname(n)=バッファnの名前"
+
+  echo "\n----- ウィンドウに関する情報 -----"
+  echo "winnr()="    . winnr()    . "	// 現在のウィンドウ番号"
+  echo "winnr('$')=" . winnr('$') . "	// 最後のウィンドウ番号"
+  echo "winnr('#')=" . winnr('#') . "	// 直前のウィンドウ番号？（仕様がよくわからない）"
+  for i in range(1, winnr('$'))
+    echo "winbufnr(" . i . ")=".winbufnr(i) . "	// ウィンドウ" . i . "に関連付くバッファ番号"
+  endfor
+
+  echo "\n----- タブページに関する情報 -----"
+  echo "tabpagenr()="    . tabpagenr()    . '	// 現在のタブページ番号'
+  echo "tabpagenr('$')=" . tabpagenr('$') . '	// 最後のタブページ番号'
+  for i in range(1, tabpagenr('$'))
+    echo 'tabpagebuflist(' . i . ')='
+    echon tabpagebuflist(i)
+    echon "	// タブページ" . i . "に関連づくバッファ番号のリスト"
+  endfor
+  for i in range(1, tabpagenr('$'))
+    echo  'tabpagewinnr(' . i . ')=' . tabpagewinnr(i)
+    echon " tabpagewinnr(" . i . ", '$')=" . tabpagewinnr(i, '$')
+    echon " tabpagewinnr(" . i . ", '#')=" . tabpagewinnr(i, '#')
+  endfor
+  echo "// tabpagewinnr(n)     =タブページnの現在のウィンドウ番号"
+  echo "// tabpagewinnr(n, '$')=タブページnの最後のウィンドウ番号"
+  echo "// tabpagewinnr(n, '#')=タブページnの直前のウィンドウ番号？（仕様がよくわからない）"
+
+endfunction
+command! -nargs=0 BufInfo call s:BufInfo()
+
+
 let &cpo = s:save_cpo
 unlet s:save_cpo
 
