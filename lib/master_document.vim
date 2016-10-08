@@ -75,6 +75,59 @@ function! g:MasterDocument()
     endfunction
 
     " query 検索するタグ文字列
+    function! self.createNotes(query)
+        call self.moveOwnPosition()
+
+        let l:notes = []
+        let l:saved_tag_list = []
+        let l:lines = self.allLineInDocument()
+        " 全行を調べる
+        for l:line in l:lines
+            " 一行でマッチしたタグ
+            let l:tags_in_line = self.getTagsInStr(l:line)
+            let l:is_start = 0
+            if len(l:tags_in_line) > 0
+                let l:is_start = 1
+            endif
+
+            " 空白列が来たらフラグをさげる
+            if l:line == ''
+                let l:add_flag = 0
+            endif
+        endfor
+
+
+        " マッチした行を入れるためのリスト
+        let l:list = []
+        let l:add_flag = 0
+    
+        " 全行を調べる
+        for l:line in l:lines
+        
+            " 行がマッチしたか
+            let l:is_matched = self.CheckMatchLine(l:line, a:query)
+    
+            " マッチしてたらフラグを上げる
+            if l:is_matched
+                let l:add_flag = 1
+            endif
+        
+            " フラグが上がってたら追加
+            " フラグは次に空白列が来るまで上がっている
+            if l:add_flag == 1
+                call add(l:list, l:line)
+            endif
+        
+            " 空白列が来たらフラグをさげる
+            if l:line == ''
+                let l:add_flag = 0
+            endif
+        endfor
+        
+        return l:list
+    endfunction
+
+    " query 検索するタグ文字列
     function! self.tagSearch(query)
         call self.moveOwnPosition()
         

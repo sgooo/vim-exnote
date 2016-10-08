@@ -55,6 +55,7 @@ function! s:Exnote()
     let self = {}
     let self.name = "exnote"
     let self.exnote_sessions = []
+    let self.prev_flag = 0
     
     function! self.getSession()
         " ここで開いたバッファがマスター文書クラスで管理しているか調べる
@@ -103,16 +104,17 @@ function! s:Exnote()
 
     " 管理対象だったバッファが閉じられたら、sessionリストから削除する
     function! self.deleteBuffer()
+        echom "deletebuffer"
         let l:current_buffer = self.focus_buffer
         let l:is_exnote_session_managed = 0
         let l:exnote_session = {}
 
         let l:tmp_list = []
-        " echom "session size: " . len(self.exnote_sessions)
-        " echom "curent_buffer: " . l:current_buffer
+        echom "session size: " . len(self.exnote_sessions)
+        echom "curent_buffer: " . l:current_buffer
         for exnote_session in self.exnote_sessions
             if exnote_session.isManagingMaster(l:current_buffer) == 1
-                " echom "管理してる" .  exnote_session.id . "が閉じられた"
+                echom "管理してる" .  exnote_session.id . "が閉じられた"
             else
                 call add(l:tmp_list,exnote_session)
             endif
@@ -123,9 +125,27 @@ function! s:Exnote()
     " バッファが閉じられるタイミングでバッファ番号を取得手段がないので、
     " バッファに移動した時点でバッファ番号を保存しておく
     function! self.enterBuffer()
+        echom "enterbuffer" . bufnr("")
+        if self.prev_flag
+            echom "prev_flag is " . self.prev_flag . " prev_buffer is " . self.previous_buffer
+            let l:is_buffer_in_window = bufwinnr(self.previous_buffer)
+            echom "l:is_buffer_in_window " . l:is_buffer_in_window
+            if l:is_buffer_in_window < 0
+                echom "previous_buffer is " . self.previous_buffer
+                exec "bd " . self.previous_buffer
+            endif
+        endif
+        let self.prev_flag = 0
+        " echom bufwinnr(bufnr(""))
         let self.focus_buffer = bufnr("")
     endfunction
 
+    function! self.leaveBuffer()
+        " echom "leavebuffer" . bufnr("")
+        " echom bufwinnr(bufnr(""))
+        let self.previous_buffer = bufnr("")
+        let self.prev_flag = 1
+    endfunction
 
     return self
 endfunction
@@ -140,6 +160,11 @@ augroup END
 augroup ent_buffer
     autocmd!
     autocmd BufEnter * call s:exnote.enterBuffer()
+augroup END
+
+augroup leave_buffer
+    autocmd!
+    autocmd BufLeave * call s:exnote.leaveBuffer()
 augroup END
 
 command! -nargs=1 ExnoteTagSearch call s:exnote.tagSearch(<args>)
